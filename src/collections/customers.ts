@@ -34,7 +34,8 @@ export const customersCollection = (queryClient: QueryClient) => createCollectio
             const { lists } = datasets
             return lists
         },
-        getKey: (item) => item.id,
+        getKey: (item: any) => item.id,
+        onInsert: async () => { },
         onUpdate: async ({ transaction }) => {
             const { original, modified } = transaction.mutations[0]
             await fetch(`/api/todos/${original.id}`, {
@@ -42,5 +43,6 @@ export const customersCollection = (queryClient: QueryClient) => createCollectio
                 body: JSON.stringify(modified),
             })
         },
+        onDelete: async () => { }
     })
 )

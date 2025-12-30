@@ -1,13 +1,26 @@
 import { cn } from "@/lib/utils"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
-import { getRequestHeaders, setResponseHeader } from "@tanstack/react-start/server"
-import { useState } from "react"
+import { setResponseHeader } from "@tanstack/react-start/server"
 import { useLiveQuery } from "@tanstack/react-db"
-import { customersCollection } from "../collections/customers"
+import { customersCollection, getCustomers } from "@/collections/customers"
 import { queryClient } from "@/integrations/tanstack-query/root-provider"
-import { useForm, useStore, revalidateLogic } from "@tanstack/react-form"
+import { useForm, revalidateLogic } from "@tanstack/react-form"
+// import * as motion from "motion/react-client"
+import { motion, AnimatePresence } from "motion/react"
 import { z } from "zod"
+import { DB } from "@/collections/db"
+import { useQuery } from "@tanstack/react-query"
+
+const schemas = z.object({
+  account: z.string().min(1, "A account is required"),
+  password: z.string().min(4, "A password is required"),
+})
+
+const configs = [
+  { id: 1, field: "account", label: "Account" },
+  { id: 2, field: "password", label: "Password" }
+]
 
 const setServerCookie = (responseHeaders: Headers) => {
   const responseCookies = typeof responseHeaders?.getSetCookie === "function"
@@ -19,12 +32,12 @@ const setServerCookie = (responseHeaders: Headers) => {
   }
 }
 
-export const loginAccount = createServerFn()
+export const loginActions = createServerFn()
   .inputValidator((data: Record<string, any>) => data)
   .handler(async ({ data }) => {
-
     const response = await fetch("http://api.beones.tw/api/login", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     })
     const datas = await response.json()
@@ -34,50 +47,36 @@ export const loginAccount = createServerFn()
   })
 
 
-export const Route = createFileRoute("/")({
-  ssr: false,
-  component: App
+export const Route = createFileRoute("/(auths)/login/")({
+  // ssr: false,
+  // loader: async ({ context }) => {
+  //   const data = await getCustomers({ data: { _acions: "read" } })
+  //   if (!data?.status) return []
+  //   return data
+  // },
+  component: LoginPage
 })
 
-function App() {
-  const {
-    data: customersDatas,
-    collection: customersDB
-  } = useLiveQuery((query) => query
-    .from({ customers: customersCollection(queryClient) })
-  )
+function LoginPage() {
+  const naviation = useNavigate()
 
-  if (!customersDatas) return null
-
-  customersDatas && console.log("customers", customersDB.get(45241));
-
-  const schemas = z.object({
-    account: z.string().min(1, "A account is required"),
-    password: z.string().min(4, "A password is required"),
-  })
-
-  const configs = [
-    { id: 1, field: "account", label: "Account" },
-    { id: 2, field: "password", label: "Password" }
-  ]
-
-  const defaultValues = configs.reduce(
-    (initValue, field) => ({ ...initValue, [field.field]: "" }),
-    {} as Record<string, any>
-  )
+  const submitHandler = async ({ value }: Record<string, any>) => {
+    const { status, data } = await loginActions({ data: value })
+    if (status) naviation({ to: "/" })
+  }
 
   const form = useForm({
-    defaultValues: defaultValues,
+    defaultValues: configs.reduce(
+      (initValue, field) => ({ ...initValue, [field.field]: "" }),
+      {} as Record<string, any>
+    ),
     validators: { onChange: schemas },
     validationLogic: revalidateLogic(),
     onSubmitInvalid() {
       const InvalidInput = document.querySelector('[aria-invalid="true"]') as HTMLInputElement
       InvalidInput?.focus()
     },
-    onSubmit: async ({ value }) => {
-      const { status, data } = await loginAccount({ data: value })
-      console.log(status, data)
-    },
+    onSubmit: submitHandler,
   })
 
   return (
@@ -91,6 +90,11 @@ function App() {
       "[&_input]:text-black",
       "[&_input]:bg-black/10"
     )}>
+      {/* <AnimatePresence>
+        {customersDatas.length && <motion.div initial={{ x: 0 }} animate={{ x: 100 }} >
+          wade
+        </motion.div>}
+      </AnimatePresence> */}
       {configs.map((config) => <div
         key={config.id}
         className={cn("flex flex-col")}
