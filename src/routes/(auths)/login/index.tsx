@@ -32,7 +32,7 @@ const setServerCookie = (responseHeaders: Headers) => {
   }
 }
 
-export const loginActions = createServerFn()
+export const loginActions = createServerFn({ method: "POST" })
   .inputValidator((data: Record<string, any>) => data)
   .handler(async ({ data }) => {
     const response = await fetch("http://api.beones.tw/api/login", {

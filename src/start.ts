@@ -9,17 +9,22 @@ const requestMiddleware = createMiddleware({ type: "request" })
     })
 
 const functionMiddleware = createMiddleware({ type: "function" })
-    .client(async ({ next }) => {
-        const result = await next()
-        // Woah! We have the time from the server!
-        console.log("functionMiddleware.client");
-        // console.log('Time from the server:', result.context.timeFromServer)
-
-        return result
+    .client(async ({
+        data,
+        context,
+        sendContext,
+        method,
+        signal,
+        next,
+        filename,
+        functionId,
+    }) => {
+        const nextContext = { name: "wade" }
+        return next({ sendContext: nextContext })
     })
     .server(async ({ context, next }) => {
         // console.log("authMiddleware", request.url);
-        console.log("functionMiddleware.server");
+        console.log("functionMiddleware.server", context);
         return next()
         //...
     })
